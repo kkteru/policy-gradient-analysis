@@ -93,7 +93,7 @@ class DDPG(object):
 
 	def critic_updates(self, replay_buffer, iterations, batch_size, discount, critic_repeat):
 
-		for repeats in range(critic_repeat):		
+		for repeats in range(int(critic_repeat)):		
 			# Sample replay buffer 
 			x, y, u, r, d = replay_buffer.sample(batch_size)
 			state = torch.FloatTensor(x).to(device)
