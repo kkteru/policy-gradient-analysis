@@ -39,6 +39,8 @@ def compute_acer_loss(
 
         importance_weight = policies[step].detach() / behavior_policies[step].detach()
         retrace = rewards[step] + gamma * retrace * masks[step]
+        #retrace_DR = 
+        # advantage = retrace_DR - values[step]
         advantage = retrace - values[step]
 
         log_policy_action = policies[step].gather(1, actions[step]).log()
@@ -58,6 +60,7 @@ def compute_acer_loss(
         entropy = entropy_weight * -(policies[step].log() * policies[step]).sum(1).mean(0)
 
         q_value = q_values[step].gather(1, actions[step])
+        import ipdb; ipdb.set_trace()
 
         ### Critic loss - Target Q - actual Q : Here target Q has the \lambda Retrace returns
         critic_loss = ((retrace - q_value) ** 2 / 2).mean(0)

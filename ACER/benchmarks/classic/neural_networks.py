@@ -35,7 +35,7 @@ class ActorCritic(nn.Module):
                 max=1-1e-20,
                 min=1e-20)
         q_value = self.critic(x)
-        value= (policy * q_value).sum(-1, keepdim=True)
+        value = (policy * q_value).sum(-1, keepdim=True)
         return policy, q_value, value
 
 

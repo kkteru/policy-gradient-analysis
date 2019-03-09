@@ -45,18 +45,45 @@ class Critic(nn.Module):
 		x = self.l3(x)
 		return x 
 
+class LargerCritic(nn.Module):
+	def __init__(self, state_dim, action_dim):
+		super(LargerCritic, self).__init__()
+
+		self.l1 = nn.Linear(state_dim, 400)
+		self.l1a = nn.Linear(400, 400)
+		self.l1b = nn.Linear(400, 400)
+		self.l2 = nn.Linear(400 + action_dim, 300)
+		self.l3 = nn.Linear(300, 1)
+
+
+	def forward(self, x, u):
+		x = F.relu(self.l1(x))
+		x = F.relu(self.l1a(x))
+		x = F.relu(self.l1b(x))
+		x = F.relu(self.l2(torch.cat([x, u], 1)))
+		x = self.l3(x)
+		return x 
+
+
 
 class DDPG(object):
-	def __init__(self, state_dim, action_dim, max_action):
+	def __init__(self, state_dim, action_dim, max_action, larger_critic_approximator):
 		self.actor = Actor(state_dim, action_dim, max_action).to(device)
 		self.actor_target = Actor(state_dim, action_dim, max_action).to(device)
 		self.actor_target.load_state_dict(self.actor.state_dict())
 		self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), lr=1e-4)
 
-		self.critic = Critic(state_dim, action_dim).to(device)
-		self.critic_target = Critic(state_dim, action_dim).to(device)
-		self.critic_target.load_state_dict(self.critic.state_dict())
-		self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), weight_decay=1e-2)		
+		if larger_critic_approximator:
+			self.critic = LargerCritic(state_dim, action_dim).to(device)
+			self.critic_target = LargerCritic(state_dim, action_dim).to(device)
+			self.critic_target.load_state_dict(self.critic.state_dict())
+			self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), weight_decay=1e-2)	
+
+		else:
+			self.critic = Critic(state_dim, action_dim).to(device)
+			self.critic_target = Critic(state_dim, action_dim).to(device)
+			self.critic_target.load_state_dict(self.critic.state_dict())
+			self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), weight_decay=1e-2)		
 
 
 	def select_action(self, state):
@@ -64,7 +91,32 @@ class DDPG(object):
 		return self.actor(state).cpu().data.numpy().flatten()
 
 
-	def train(self, replay_buffer, iterations, batch_size=64, discount=0.99, tau=0.001):
+	def critic_updates(self, replay_buffer, iterations, batch_size, discount, critic_repeat):
+
+		for repeats in range(critic_repeat):		
+			# Sample replay buffer 
+			x, y, u, r, d = replay_buffer.sample(batch_size)
+			state = torch.FloatTensor(x).to(device)
+			action = torch.FloatTensor(u).to(device)
+			next_state = torch.FloatTensor(y).to(device)
+			done = torch.FloatTensor(1 - d).to(device)
+			reward = torch.FloatTensor(r).to(device)		
+
+			# Compute the target Q value
+			target_Q = self.critic_target(next_state, self.actor_target(next_state))
+			target_Q = reward + (done * discount * target_Q).detach()		
+			# Get current Q estimate
+			current_Q = self.critic(state, action)
+			# Compute critic loss
+			critic_loss = F.mse_loss(current_Q, target_Q)
+			# Optimize the critic
+			self.critic_optimizer.zero_grad()
+			critic_loss.backward()
+			self.critic_optimizer.step()
+
+
+
+	def train(self, replay_buffer, iterations, repeated_critic_updates, critic_repeat, batch_size=64, discount=0.99, tau=0.001):
 
 		for it in range(iterations):
 
@@ -90,6 +142,9 @@ class DDPG(object):
 			self.critic_optimizer.zero_grad()
 			critic_loss.backward()
 			self.critic_optimizer.step()
+
+			if repeated_critic_updates:
+				self.critic_updates(replay_buffer, iterations, batch_size, discount, critic_repeat)
 
 			# Compute actor loss
 			actor_loss = -self.critic(state, self.actor(state)).mean()

@@ -8,7 +8,6 @@ import utils
 import TD3
 import OurDDPG
 import DDPG
-import softTD3
 from utils import Logger
 from utils import create_folder
 
@@ -36,7 +35,7 @@ def evaluate_policy(policy, eval_episodes=10):
 if __name__ == "__main__":
 	
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--policy_name", default="TD3")					# Policy name
+	parser.add_argument("--policy_name", default="DDPG")					# Policy name
 	parser.add_argument("--env_name", default="HalfCheetah-v1")			# OpenAI gym environment name
 	parser.add_argument("--seed", default=0, type=int)					# Sets Gym, PyTorch and Numpy seeds
 	parser.add_argument("--start_timesteps", default=1e4, type=int)		# How many time steps purely random policy is run for
@@ -65,6 +64,20 @@ if __name__ == "__main__":
 	parser.add_argument("--use_regularization_loss", type=bool, default=False, help='use simple regularizion losses for mean and log std of policy')
 	parser.add_argument("--use_dueling", type=bool, default=False, help='use dueling network architectures')
 	parser.add_argument("--use_logger", type=bool, default=False, help='whether to use logging or not')
+
+
+	parser.add_argument("--no_new_samples_after_threshold", type=bool, default=False, help='stop adding new samples to the replay buffer')
+	parser.add_argument("--add_buffer_threshold", type=int, default=2, help='threshold after which to add samples to buffer') ## stop adding new samples to the buffer
+	parser.add_argument("--action_interpolation", type=bool, default=False, help='interpolate between on-policy and off-policy actions')
+	parser.add_argument("--beta", type=float, default=1.0, help='parameter controlling interpolation between on-policy and off-policy actions')
+	parser.add_argument("--control_buffer_samples", type=bool, default=False, help='control when to add samples to the buffer')
+	parser.add_argument("--repeated_critic_updates", type=bool, default=False, help='do repeated updates of the critic')
+	parser.add_argument("--critic_repeat", type=float, default=5, help='number of repeated updates of the critic')
+	parser.add_argument("--on_policy", type=bool, default=False, help='Be completely on-policy')
+	parser.add_argument("--off_policy", type=bool, default=False, help='Be completely off-policy')
+	parser.add_argument("--larger_critic_approximator", type=bool, default=False, help='Use a higher capacity function approximator for the critic')
+
+
 
 	args = parser.parse_args()
 
@@ -102,9 +115,8 @@ if __name__ == "__main__":
 
 	# Initialize policy
 	if args.policy_name == "TD3": policy = TD3.TD3(state_dim, action_dim, max_action)
-	elif args.policy_name == "softTD3": policy = softTD3.softTD3(state_dim, action_dim, max_action)
-	elif args.policy_name == "OurDDPG": policy = OurDDPG.DDPG(state_dim, action_dim, max_action)
-	elif args.policy_name == "DDPG": policy = DDPG.DDPG(state_dim, action_dim, max_action)
+	# elif args.policy_name == "OurDDPG": policy = OurDDPG.DDPG(state_dim, action_dim, max_action)
+	elif args.policy_name == "DDPG": policy = DDPG.DDPG(state_dim, action_dim, max_action, args.larger_critic_approximator)
 
 	replay_buffer = utils.ReplayBuffer()
 	
@@ -126,10 +138,8 @@ if __name__ == "__main__":
 				print(("Total T: %d Episode Num: %d Episode T: %d Reward: %f") % (total_timesteps, episode_num, episode_timesteps, episode_reward))
 				if args.policy_name == "TD3":
 					policy.train(replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau, args.policy_noise, args.noise_clip, args.policy_freq)
-				elif args.policy_name == "softTD3":
-					policy.train(args, replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau, args.policy_noise, args.noise_clip, args.policy_freq)	
 				else: 
-					policy.train(replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau)
+					policy.train(replay_buffer, episode_timesteps, args.repeated_critic_updates, args.critic_repeat, args.batch_size, args.discount, args.tau)
 			
 
 			# Evaluate episode
@@ -155,23 +165,39 @@ if __name__ == "__main__":
 			episode_timesteps = 0
 			episode_num += 1 
 		
-		# Select action randomly or according to policy
-		if total_timesteps < args.start_timesteps:
-			action = env.action_space.sample()
-		else:
+
+		## interpolating between on-policy and off-policy
+		if args.action_interpolation : 
+			action_under_target_policy = policy.select_action(np.array(obs))
+			behaviour_action = np.random.normal(0, args.expl_noise, size=env.action_space.shape[0]).clip(env.action_space.low, env.action_space.high)
+			action = args.beta * action_under_target_policy + (1 - args.beta) * behaviour_action
+		## be completely on-policy - ie, take actions only from the target
+		elif args.on_policy:
 			action = policy.select_action(np.array(obs))
-			if args.policy_name=="softTD3":
-				action = (action).clip(env.action_space.low, env.action_space.high)
+		elif args.off_policy:
+			action = np.random.normal(0, args.expl_noise, size=env.action_space.shape[0]).clip(env.action_space.low, env.action_space.high)
+
+		else:
+			if total_timesteps < args.start_timesteps:
+				action = env.action_space.sample()
 			else:
-				action = (action + np.random.normal(0, args.expl_noise, size=env.action_space.shape[0])).clip(env.action_space.low, env.action_space.high)
+				action = policy.select_action(np.array(obs))
+				action = (action + np.random.normal(0, args.expl_noise, size=env.action_space.shape[0])).clip(env.action_space.low, env.action_space.high)				
+
 
 		# Perform action
 		new_obs, reward, done, _ = env.step(action) 
 		done_bool = 0 if episode_timesteps + 1 == env._max_episode_steps else float(done)
 		episode_reward += reward
 
-		# Store data in replay buffer
-		replay_buffer.add((obs, new_obs, action, reward, done_bool))
+		if args.no_new_samples_after_threshold:
+			if total_timesteps < args.max_timesteps/args.add_buffer_threshold:
+				replay_buffer.add((obs, new_obs, action, reward, done_bool))
+		elif args.control_buffer_samples:
+			if total_timesteps < float(round(args.max_timesteps/5)) or total_timesteps > float(round(args.max_timesteps)/3) or total_timesteps > float(round(args.max_timesteps)/1.75) :
+				replay_buffer.add((obs, new_obs, action, reward, done_bool))
+		else:
+			replay_buffer.add((obs, new_obs, action, reward, done_bool))
 
 		obs = new_obs
 
