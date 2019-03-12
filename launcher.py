@@ -20,7 +20,7 @@ def grid_search(args_vals):
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--experiments', type=int, default=3)
-parser.add_argument('--policy_name', type=str, default="MaxEntDDPG")          # Policy name
+parser.add_argument('--policy_name', type=str, default="DDPG")          # Policy name
 parser.add_argument('--env_name', type=str, default="HalfCheetah-v1")         # OpenAI gym environment name
 parser.add_argument('--start_timesteps', default=10000, type=int)     # How many time steps purely random policy is run for
 parser.add_argument('--eval_freq', default=5e3, type=float)         # How often (time steps) we evaluate
@@ -49,6 +49,7 @@ parser.add_argument("--on_policy", type=bool, default=False, help='Be completely
 parser.add_argument("--off_policy", type=bool, default=False, help='Be completely off-policy')
 parser.add_argument("--larger_critic_approximator", type=bool, default=False, help='Use a higher capacity function approximator for the critic')
 
+parser.add_argument('--main', type=str, default="./main.py")   
 
 
 
@@ -56,10 +57,13 @@ locals().update(parser.parse_args().__dict__)
 
 
 job_prefix = "python "
-exp_script = './main.py ' 
-job_prefix += exp_script
+# exp_script = './main.py '
+# job_prefix += exp_script
 
 args = parser.parse_args()
+exp_script = args.main + ' ' 
+job_prefix += exp_script
+
 
 experiments = args.experiments
 policy_name = args.policy_name

@@ -52,34 +52,17 @@ if __name__ == "__main__":
 	parser.add_argument("--ent_weight", default=0.01, type=float)		# Range to clip target policy noise
 	parser.add_argument("--folder", type=str, default='./results/')	
 
-	parser.add_argument("--trust_actor_weight", default=0.01, type=float)
-	parser.add_argument("--trust_critic_weight", default=0.01, type=float)
-	parser.add_argument("--diversity_expl", type=bool, default=False, help='whether to use diversity driven exploration')
-
-	parser.add_argument("--use_baseline_in_target", type=bool, default=False, help='use baseline in target')
-	parser.add_argument("--use_critic_regularizer", type=bool, default=False, help='use regularizer in critic')
-	parser.add_argument("--use_actor_regularizer", type=bool, default=False, help='use regularizer in actor')
-	parser.add_argument("--use_log_prob_in_policy", type=bool, default=False, help='use log prob in actor loss as in SAC')
-	parser.add_argument("--use_value_baseline", type=bool, default=False, help='use value function baseline in actor loss to reduce variance')
-	parser.add_argument("--use_regularization_loss", type=bool, default=False, help='use simple regularizion losses for mean and log std of policy')
-	parser.add_argument("--use_dueling", type=bool, default=False, help='use dueling network architectures')
 	parser.add_argument("--use_logger", type=bool, default=False, help='whether to use logging or not')
-
-
 	parser.add_argument("--no_new_samples_after_threshold", type=bool, default=False, help='stop adding new samples to the replay buffer')
 	parser.add_argument("--add_buffer_threshold", type=int, default=2, help='threshold after which to add samples to buffer') ## stop adding new samples to the buffer
-
 	parser.add_argument("--action_interpolation", type=bool, default=False, help='interpolate between on-policy and off-policy actions')
 	parser.add_argument("--beta", type=float, default=1.0, help='parameter controlling interpolation between on-policy and off-policy actions')
-	
 	parser.add_argument("--control_buffer_samples", type=bool, default=False, help='control when to add samples to the buffer')
 	parser.add_argument("--repeated_critic_updates", type=bool, default=False, help='do repeated updates of the critic')
 	parser.add_argument("--critic_repeat", type=float, default=5, help='number of repeated updates of the critic')
 	parser.add_argument("--on_policy", type=bool, default=False, help='Be completely on-policy')
 	parser.add_argument("--off_policy", type=bool, default=False, help='Be completely off-policy')
 	parser.add_argument("--larger_critic_approximator", type=bool, default=False, help='Use a higher capacity function approximator for the critic')
-
-
 
 	args = parser.parse_args()
 
@@ -218,3 +201,8 @@ if __name__ == "__main__":
 		logger.save_2()
 		if args.save_models: policy.save("%s" % (file_name), directory="./pytorch_models")
 		np.save("./results/%s" % (file_name), evaluations)  
+
+
+
+
+
