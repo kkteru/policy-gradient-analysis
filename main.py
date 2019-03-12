@@ -58,11 +58,12 @@ if __name__ == "__main__":
 	parser.add_argument("--action_interpolation", type=bool, default=False, help='interpolate between on-policy and off-policy actions')
 	parser.add_argument("--beta", type=float, default=1.0, help='parameter controlling interpolation between on-policy and off-policy actions')
 	parser.add_argument("--control_buffer_samples", type=bool, default=False, help='control when to add samples to the buffer')
-	parser.add_argument("--repeated_critic_updates", type=bool, default=False, help='do repeated updates of the critic')
-	parser.add_argument("--critic_repeat", type=float, default=5, help='number of repeated updates of the critic')
 	parser.add_argument("--on_policy", type=bool, default=False, help='Be completely on-policy')
 	parser.add_argument("--off_policy", type=bool, default=False, help='Be completely off-policy')
+
 	parser.add_argument("--larger_critic_approximator", type=bool, default=False, help='Use a higher capacity function approximator for the critic')
+	parser.add_argument("--repeated_critic_updates", type=bool, default=False, help='do repeated updates of the critic')
+	parser.add_argument("--critic_repeat", type=float, default=5, help='number of repeated updates of the critic')
 
 	args = parser.parse_args()
 
