@@ -93,6 +93,7 @@ class DDPG(object):
 
 	def critic_updates(self, replay_buffer, iterations, batch_size, discount, critic_repeat):
 
+		critic_loss = 0
 		for repeats in range(int(critic_repeat)):		
 			# Sample replay buffer 
 			x, y, u, r, d = replay_buffer.sample(batch_size)
@@ -108,11 +109,14 @@ class DDPG(object):
 			# Get current Q estimate
 			current_Q = self.critic(state, action)
 			# Compute critic loss
-			critic_loss = F.mse_loss(current_Q, target_Q)
-			# Optimize the critic
-			self.critic_optimizer.zero_grad()
-			critic_loss.backward()
-			self.critic_optimizer.step()
+			# critic_loss = F.mse_loss(current_Q, target_Q)
+			critic_loss += F.mse_loss(current_Q, target_Q)
+
+		# Optimize the critic
+		critic_loss = critic_loss / critic_repeat
+		self.critic_optimizer.zero_grad()
+		critic_loss.backward()
+		self.critic_optimizer.step()
 
 
 
@@ -120,7 +124,6 @@ class DDPG(object):
 
 		for it in range(iterations):
 
-			# Sample replay buffer 
 			x, y, u, r, d = replay_buffer.sample(batch_size)
 			state = torch.FloatTensor(x).to(device)
 			action = torch.FloatTensor(u).to(device)
