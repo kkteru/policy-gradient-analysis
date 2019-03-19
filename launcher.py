@@ -19,7 +19,7 @@ def grid_search(args_vals):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--experiments', type=int, default=3)
+parser.add_argument('--experiments', type=int, default=10)
 parser.add_argument('--policy_name', type=str, default="DDPG")          # Policy name
 parser.add_argument('--env_name', type=str, default="HalfCheetah-v1")         # OpenAI gym environment name
 parser.add_argument('--start_timesteps', default=10000, type=int)     # How many time steps purely random policy is run for
