@@ -1,0 +1,13 @@
+_Store
+__pycache__/
+tmp.txt
+experiments/
+
+#Saved and downloaded data files
+*.nt.gz
+*.npz
+*.pkl
+*.pickle
+*.ipynb
+*.npy
+*.pyc
