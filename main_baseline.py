@@ -112,7 +112,7 @@ if __name__ == "__main__":
         policy = DDPG.DDPG(state_dim, action_dim, max_action, args.larger_critic_approximator, device)
 
     episode_len = env._max_episode_steps
-    replay_buffer = utils.ReplayBuffer(args.delay * episode_len, args.warm_up * episode_len, args.delay * episode_len)
+    replay_buffer = utils.ReplayBuffer(args.window * episode_len, args.warm_up * episode_len, args.delay * episode_len)
 
     # Evaluate untrained policy
     evaluations = [evaluate_policy(policy)]
