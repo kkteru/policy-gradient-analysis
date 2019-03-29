@@ -25,10 +25,11 @@ class ReplayBuffer(object):
             self.storage.append(data)
 
       def sample(self, batch_size=100):
+            # Only valid when timestetps in an episode is pre-defined as in most Mujoco env
             self.l_margin = max(0, len(self.storage) - self.window)
             self.u_margin = min(len(self.storage), self.warm_up) + max(0, len(self.storage) - self.warm_up - self.delay)
-
             ind = np.random.randint(self.l_margin, self.u_margin, size=batch_size)
+
             x, y, u, r, d = [], [], [], [], []
 
             for i in ind:

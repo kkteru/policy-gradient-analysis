@@ -51,6 +51,13 @@ if __name__ == "__main__":
     parser.add_argument("--ent_weight", default=0.01, type=float)       # Range to clip target policy noise
     parser.add_argument("--folder", type=str, default='./results/')
 
+    parser.add_argument("--warm_up", default=0, type=int,
+                        help='Minimum number of episodes to train before starting to move window. \
+                        Should ideally be less than the window size')
+    parser.add_argument("--delay", default=0, type=int, help='Delay in no. of episodes')
+    parser.add_argument("--window", default=1e4, type=int, help='Window size of the buffer in no. of episodes')
+    parser.add_argument("--gpu", type=int, default=0, help="Which GPU to use?")
+
     parser.add_argument("--use_logger", type=bool, default=False, help='whether to use logging or not')
     parser.add_argument("--no_new_samples_after_threshold", type=bool, default=False, help='stop adding new samples to the replay buffer')
     parser.add_argument("--add_buffer_threshold", type=int, default=2, help='threshold after which to add samples to buffer')  # stop adding new samples to the buffer
@@ -64,6 +71,8 @@ if __name__ == "__main__":
     parser.add_argument("--larger_critic_approximator", type=bool, default=False, help='Use a higher capacity function approximator for the critic')
 
     args = parser.parse_args()
+
+    device = torch.device("cuda:%d" % args.gpu if torch.cuda.is_available() else "cpu")
 
     if args.use_logger:
         file_name = "%s_%s_%s" % (args.policy_name, args.env_name, str(args.seed))
@@ -98,11 +107,12 @@ if __name__ == "__main__":
 
     # Initialize policy
     if args.policy_name == "TD3":
-        policy = TD3.TD3(state_dim, action_dim, max_action)
+        policy = TD3.TD3(state_dim, action_dim, max_action, device)
     elif args.policy_name == "DDPG":
-        policy = DDPG.DDPG(state_dim, action_dim, max_action, args.larger_critic_approximator)
+        policy = DDPG.DDPG(state_dim, action_dim, max_action, args.larger_critic_approximator, device)
 
-    replay_buffer = utils.ReplayBuffer()
+    episode_len = env._max_episode_steps
+    replay_buffer = utils.ReplayBuffer(args.delay * episode_len, args.warm_up * episode_len, args.delay * episode_len)
 
     # Evaluate untrained policy
     evaluations = [evaluate_policy(policy)]
