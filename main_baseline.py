@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--warm_up", default=0, type=int,
                         help='Minimum number of episodes to train before starting to move window. \
-                        Should ideally be less than the window size')
+                        Only matters for non-zero values of delay')
     parser.add_argument("--delay", default=0, type=int, help='Delay in no. of episodes')
     parser.add_argument("--window", default=10000, type=int, help='Window size of the buffer in no. of episodes')
     parser.add_argument("--runs", type=int, default=5, help="How many times the experiment is to be repeated?")
@@ -103,7 +103,7 @@ if __name__ == "__main__":
 
     for r in range(args.runs):
         # Set seeds
-        seed = np.random.randint(100)
+        seed = 100 * (r + 1)
         env.seed(seed)
         torch.manual_seed(seed)
         np.random.seed(seed)
@@ -154,7 +154,6 @@ if __name__ == "__main__":
                     tic = toc
                     replay_buffer.add_episode_len(episode_timesteps)
                     replay_buffer.set_margins()
-                    print(replay_buffer.l_margin, replay_buffer.u_margin)
                     if args.policy_name == "TD3":
                         policy.train(replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau, args.policy_noise, args.noise_clip, args.policy_freq)
                     else:
