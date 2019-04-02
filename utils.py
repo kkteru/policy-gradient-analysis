@@ -47,7 +47,7 @@ def create_folder(f): return [os.makedirs(f) if not os.path.exists(f) else False
 
 
 class Logger(object):
-      def __init__(self, experiment_name='', environment_name='', folder='./results'):
+      def __init__(self, args, experiment_name='', environment_name='', folder='./results'):
             """
             Saves experimental metrics for use later.
             :param experiment_name: name of the experiment
@@ -55,8 +55,10 @@ class Logger(object):
             : param environment_name: name of the environment
             """
             self.rewards = []
-            self.save_folder = os.path.join(folder, experiment_name, environment_name, time.strftime('%y-%m-%d-%H-%M-%s'))
+            self.save_folder = os.path.join(folder, experiment_name, environment_name, time.strftime('%y-%m-%d') + str(args.window) + str(args.delay))
             create_folder(self.save_folder)
+            with open(os.path.join(self.save_folder, 'params.json'), 'w') as f:
+                  json.dump(dict(args._get_kwargs()), f)
 
       def record_reward(self, reward_return):
             self.returns_eval = reward_return
@@ -69,10 +71,3 @@ class Logger(object):
 
       def save_2(self):
             np.save(os.path.join(self.save_folder, "returns_train.npy"), self.returns_train)
-
-      def save_args(self, args):
-            """
-            Save the command line arguments
-            """
-            with open(os.path.join(self.save_folder, 'params.json'), 'w') as f:
-                  json.dump(dict(args._get_kwargs()), f)

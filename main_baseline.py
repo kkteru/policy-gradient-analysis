@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--policy_name", default="DDPG")                    # Policy name
-    parser.add_argument("--env_name", default="HalfCheetah-v1")         # OpenAI gym environment name
+    parser.add_argument("--env_name", default="InvertedDoublePendulum-v1")         # OpenAI gym environment name
     parser.add_argument("--seed", default=0, type=int)                  # Sets Gym, PyTorch and Numpy seeds
     parser.add_argument("--start_timesteps", default=1e4, type=int)     # How many time steps purely random policy is run for
     parser.add_argument("--eval_freq", default=5e3, type=float)         # How often (time steps) we evaluate
@@ -76,10 +76,9 @@ if __name__ == "__main__":
     device = torch.device("cuda:%d" % args.gpu if torch.cuda.is_available() else "cpu")
 
     if args.use_logger:
-        file_name = "%s_%s_%s" % (args.policy_name, args.env_name, str(args.seed))
+        file_name = "%s_%s_%s_%s_%s" % (args.policy_name, args.env_name, str(args.seed), str(args.window), str(args.delay))
 
-        logger = Logger(experiment_name=args.policy_name, environment_name=args.env_name, folder=args.folder)
-        logger.save_args(args)
+        logger = Logger(args, experiment_name=args.policy_name, environment_name=args.env_name, folder=args.folder)
 
         print ('Saving to', logger.save_folder)
 
@@ -148,7 +147,6 @@ if __name__ == "__main__":
                     logger.save()
                     if args.save_models:
                         policy.save(file_name, directory="./pytorch_models")
-                    np.save("./results/%s" % (file_name), evaluations)
 
             # Reset environment
             obs = env.reset()
@@ -192,4 +190,3 @@ if __name__ == "__main__":
         logger.save_2()
         if args.save_models:
             policy.save("%s" % (file_name), directory="./pytorch_models")
-        np.save("./results/%s" % (file_name), evaluations)
