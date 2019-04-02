@@ -123,13 +123,16 @@ if __name__ == "__main__":
     timesteps_since_eval = 0
     episode_num = 0
     done = True
+    tic = time.time()
 
     while total_timesteps < args.max_timesteps:
 
         if done:
 
             if total_timesteps != 0:
-                print(("Total T: %d Episode Num: %d Episode T: %d Reward: %f") % (total_timesteps, episode_num, episode_timesteps, episode_reward))
+                toc = time.time()
+                print(("Total T: %d Episode Num: %d Episode T: %d Reward: %f Time: %f") % (total_timesteps, episode_num, episode_timesteps, episode_reward, toc - tic))
+                tic = toc
                 if args.policy_name == "TD3":
                     policy.train(replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau, args.policy_noise, args.noise_clip, args.policy_freq)
                 else:
