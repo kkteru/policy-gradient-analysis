@@ -55,7 +55,7 @@ class Logger(object):
             : param environment_name: name of the environment
             """
             self.rewards = []
-            self.save_folder = os.path.join(folder, experiment_name, environment_name, time.strftime('%y-%m-%d') + str(args.window) + str(args.delay))
+            self.save_folder = os.path.join(folder, experiment_name, environment_name, time.strftime('%y-%m-%d') + '_' + str(args.window) + '_' + str(args.delay))
             create_folder(self.save_folder)
             with open(os.path.join(self.save_folder, 'params.json'), 'w') as f:
                   json.dump(dict(args._get_kwargs()), f)
