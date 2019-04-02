@@ -11,8 +11,9 @@ import json
 
 
 class ReplayBuffer(object):
-      def __init__(self, window=1e9, warm_up=0, delay=0):
+      def __init__(self, window=1e4, warm_up=0, delay=0):
             self.storage = []
+            self.episode_lens = []
             self.l_margin = 0
             self.u_margin = 0
 
@@ -21,13 +22,20 @@ class ReplayBuffer(object):
             self.delay = delay
 
       # Expects tuples of (state, next_state, action, reward, done)
-      def add(self, data):
+      def add_sample(self, data):
             self.storage.append(data)
 
+      def add_episode_len(self, data):
+            self.episode_lens.append(data)
+
+      def set_margins(self):
+            self.u_margin = min(len(self.storage), np.sum(self.episode_lens[-self.warm_up:])) + max(0, len(self.storage) - np.sum(self.episode_lens[-self.warm_up:]) - np.sum(self.episode_lens[-self.delay:]))
+            self.l_margin = max(0, self.u_margin - np.sum(self.episode_lens[-self.window:]))
+
       def sample(self, batch_size=100):
-            # Only valid when timestetps in an episode is pre-defined as in most Mujoco env
-            self.u_margin = min(len(self.storage), self.warm_up) + max(0, len(self.storage) - self.warm_up - self.delay)
-            self.l_margin = max(0, self.u_margin - self.window)
+
+            # self.u_margin = min(len(self.storage), np.sum(self.episode_lens[-self.warm_up:])) + max(0, len(self.storage) - np.sum(self.episode_lens[-self.warm_up:]) - np.sum(self.episode_lens[-self.delay:]))
+            # self.l_margin = max(0, self.u_margin - np.sum(self.episode_lens[-self.window:]))
             ind = np.random.randint(self.l_margin, self.u_margin, size=batch_size)
 
             x, y, u, r, d = [], [], [], [], []

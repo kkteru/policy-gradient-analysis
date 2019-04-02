@@ -39,7 +39,7 @@ if __name__ == "__main__":
     parser.add_argument("--env_name", default="InvertedDoublePendulum-v1")         # OpenAI gym environment name
     parser.add_argument("--seed", default=0, type=int)                  # Sets Gym, PyTorch and Numpy seeds
     parser.add_argument("--start_timesteps", default=1e4, type=int)     # How many time steps purely random policy is run for
-    parser.add_argument("--eval_freq", default=5e3, type=float)         # How often (episodes) we evaluate
+    parser.add_argument("--eval_freq", default=5, type=float)         # How often (episodes) we evaluate
     parser.add_argument("--max_timesteps", default=1.25e6, type=float)     # Max time steps to run environment for
     parser.add_argument("--save_models", default=True)          # Whether or not models are saved
     parser.add_argument("--expl_noise", default=0.1, type=float)        # Std of Gaussian exploration noise
@@ -120,8 +120,7 @@ if __name__ == "__main__":
         elif args.policy_name == "DDPG":
             policy = DDPG.DDPG(state_dim, action_dim, max_action, args.larger_critic_approximator, device)
 
-        episode_len = env._max_episode_steps
-        replay_buffer = utils.ReplayBuffer(args.window * episode_len, args.warm_up * episode_len, args.delay * episode_len)
+        replay_buffer = utils.ReplayBuffer(args.window, args.warm_up, args.delay)
 
         # Evaluate untrained policy
         evaluations = [evaluate_policy(policy)]
@@ -153,6 +152,9 @@ if __name__ == "__main__":
                     toc = time.time()
                     print(("Total T: %d Episode Num: %d Episode T: %d Reward: %f Time: %f") % (total_timesteps, episode_num, episode_timesteps, episode_reward, toc - tic))
                     tic = toc
+                    replay_buffer.add_episode_len(episode_timesteps)
+                    replay_buffer.set_margins()
+                    print(replay_buffer.l_margin, replay_buffer.u_margin)
                     if args.policy_name == "TD3":
                         policy.train(replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau, args.policy_noise, args.noise_clip, args.policy_freq)
                     else:
