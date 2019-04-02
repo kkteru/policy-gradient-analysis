@@ -31,7 +31,7 @@ class ReplayBuffer(object):
       def set_margins(self):
             self.u_margin = min(len(self.storage), np.sum(self.episode_lens[len(self.episode_lens) - self.warm_up:-1])) \
                 + max(0, len(self.storage) - np.sum(self.episode_lens[len(self.episode_lens) - self.warm_up:-1]) - np.sum(self.episode_lens[len(self.episode_lens) - self.delay:-1]))
-            self.l_margin = max(0, self.u_margin - np.sum(self.episode_lens[len(self.episode_lens) - self.window:-1]))
+            self.l_margin = max(0, self.u_margin - np.sum(self.episode_lens[-self.window:]))
 
       def sample(self, batch_size=100):
 
