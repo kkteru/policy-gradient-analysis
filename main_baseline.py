@@ -56,7 +56,7 @@ if __name__ == "__main__":
                         help='Minimum number of episodes to train before starting to move window. \
                         Should ideally be less than the window size')
     parser.add_argument("--delay", default=0, type=int, help='Delay in no. of episodes')
-    parser.add_argument("--window", default=1e4, type=int, help='Window size of the buffer in no. of episodes')
+    parser.add_argument("--window", default=10000, type=int, help='Window size of the buffer in no. of episodes')
     parser.add_argument("--runs", type=int, default=5, help="How many times the experiment is to be repeated?")
     parser.add_argument("--gpu", type=int, default=0, help="Which GPU to use?")
 
@@ -197,7 +197,7 @@ if __name__ == "__main__":
             done_bool = 0 if episode_timesteps + 1 == env._max_episode_steps else float(done)
             episode_reward += reward
 
-            replay_buffer.add((obs, new_obs, action, reward, done_bool))
+            replay_buffer.add_sample((obs, new_obs, action, reward, done_bool))
             obs = new_obs
 
             episode_timesteps += 1
