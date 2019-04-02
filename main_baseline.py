@@ -40,7 +40,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", default=0, type=int)                  # Sets Gym, PyTorch and Numpy seeds
     parser.add_argument("--start_timesteps", default=1e4, type=int)     # How many time steps purely random policy is run for
     parser.add_argument("--eval_freq", default=5e3, type=float)         # How often (time steps) we evaluate
-    parser.add_argument("--max_timesteps", default=1e6, type=float)     # Max time steps to run environment for
+    parser.add_argument("--max_timesteps", default=1.25e6, type=float)     # Max time steps to run environment for
     parser.add_argument("--save_models", default=True)          # Whether or not models are saved
     parser.add_argument("--expl_noise", default=0.1, type=float)        # Std of Gaussian exploration noise
     parser.add_argument("--batch_size", default=100, type=int)          # Batch size for both actor and critic
@@ -57,6 +57,7 @@ if __name__ == "__main__":
                         Should ideally be less than the window size')
     parser.add_argument("--delay", default=0, type=int, help='Delay in no. of episodes')
     parser.add_argument("--window", default=1e4, type=int, help='Window size of the buffer in no. of episodes')
+    parser.add_argument("--runs", type=int, default=5, help="How many times the experiment is to be repeated?")
     parser.add_argument("--gpu", type=int, default=0, help="Which GPU to use?")
 
     parser.add_argument("--use_logger", type=bool, default=False, help='whether to use logging or not')
@@ -76,7 +77,7 @@ if __name__ == "__main__":
     device = torch.device("cuda:%d" % args.gpu if torch.cuda.is_available() else "cpu")
 
     if args.use_logger:
-        file_name = "%s_%s_%s_%s_%s" % (args.policy_name, args.env_name, str(args.seed), str(args.window), str(args.delay))
+        file_name = "%s_%s_%s_%s" % (args.policy_name, args.env_name, str(args.window), str(args.delay))
 
         logger = Logger(args, experiment_name=args.policy_name, environment_name=args.env_name, folder=args.folder)
 
@@ -89,103 +90,109 @@ if __name__ == "__main__":
 
     env = gym.make(args.env_name)
 
-    # Set seeds
-    seed = np.random.randint(10)
-    env.seed(seed)
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-
-    if args.use_logger:
-        print ("---------------------------------------")
-        print ("Settings: %s" % (file_name))
-        print ("Seed : %s" % (seed))
-        print ("---------------------------------------")
-
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.shape[0]
     max_action = float(env.action_space.high[0])
 
-    # Initialize policy
-    if args.policy_name == "TD3":
-        policy = TD3.TD3(state_dim, action_dim, max_action, device)
-    elif args.policy_name == "DDPG":
-        policy = DDPG.DDPG(state_dim, action_dim, max_action, args.larger_critic_approximator, device)
+    all_evaluations = []
+    all_training_evaluations = []
 
-    episode_len = env._max_episode_steps
-    replay_buffer = utils.ReplayBuffer(args.window * episode_len, args.warm_up * episode_len, args.delay * episode_len)
+    for r in range(args.runs):
+        # Set seeds
+        seed = np.random.randint(100)
+        env.seed(seed)
+        torch.manual_seed(seed)
+        np.random.seed(seed)
 
-    # Evaluate untrained policy
-    evaluations = [evaluate_policy(policy)]
-    episode_reward = 0
-    training_evaluations = [episode_reward]
+        if args.use_logger:
+            print ("---------------------------------------")
+            print ("Settings: %s" % (file_name))
+            print ("Seed : %s" % (seed))
+            print ("---------------------------------------")
 
-    total_timesteps = 0
-    timesteps_since_eval = 0
-    episode_num = 0
-    done = True
-    tic = time.time()
+        # Initialize policy
+        if args.policy_name == "TD3":
+            policy = TD3.TD3(state_dim, action_dim, max_action, device)
+        elif args.policy_name == "DDPG":
+            policy = DDPG.DDPG(state_dim, action_dim, max_action, args.larger_critic_approximator, device)
 
-    while total_timesteps < args.max_timesteps:
+        episode_len = env._max_episode_steps
+        replay_buffer = utils.ReplayBuffer(args.window * episode_len, args.warm_up * episode_len, args.delay * episode_len)
 
-        if done:
+        # Evaluate untrained policy
+        evaluations = [evaluate_policy(policy)]
+        episode_reward = 0
+        training_evaluations = [episode_reward]
 
-            if total_timesteps != 0:
-                toc = time.time()
-                print(("Total T: %d Episode Num: %d Episode T: %d Reward: %f Time: %f") % (total_timesteps, episode_num, episode_timesteps, episode_reward, toc - tic))
-                tic = toc
-                if args.policy_name == "TD3":
-                    policy.train(replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau, args.policy_noise, args.noise_clip, args.policy_freq)
-                else:
-                    policy.train(replay_buffer, episode_timesteps, args.repeated_critic_updates, args.critic_repeat, args.batch_size, args.discount, args.tau)
+        total_timesteps = 0
+        timesteps_since_eval = 0
+        episode_num = 0
+        done = True
+        tic = time.time()
 
-            # Evaluate episode
-            if timesteps_since_eval >= args.eval_freq:
-                timesteps_since_eval %= args.eval_freq
-                evaluations.append(evaluate_policy(policy))
-                if args.use_logger:
-                    logger.record_reward(evaluations)
-                    logger.save()
-                    if args.save_models:
-                        policy.save(file_name, directory="./pytorch_models")
+        while total_timesteps < args.max_timesteps:
 
-            # Reset environment
-            obs = env.reset()
-            done = False
-            training_evaluations.append(episode_reward)
+            if done:
 
-            if args.use_logger:
-                logger.training_record_reward(training_evaluations)
-                logger.save_2()
+                if total_timesteps != 0:
+                    toc = time.time()
+                    print(("Total T: %d Episode Num: %d Episode T: %d Reward: %f Time: %f") % (total_timesteps, episode_num, episode_timesteps, episode_reward, toc - tic))
+                    tic = toc
+                    if args.policy_name == "TD3":
+                        policy.train(replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau, args.policy_noise, args.noise_clip, args.policy_freq)
+                    else:
+                        policy.train(replay_buffer, episode_timesteps, args.repeated_critic_updates, args.critic_repeat, args.batch_size, args.discount, args.tau)
 
-            episode_reward = 0
-            episode_timesteps = 0
-            episode_num += 1
+                # Evaluate episode
+                if timesteps_since_eval >= args.eval_freq:
+                    timesteps_since_eval %= args.eval_freq
+                    evaluations.append(evaluate_policy(policy))
+                    # if args.use_logger:
+                    #     logger.record_reward(evaluations)
+                    #     logger.save()
+                    #     if args.save_models:
+                    #         policy.save(file_name, directory="./pytorch_models")
 
-        if total_timesteps < args.start_timesteps:
-            action = env.action_space.sample()
-        else:
-            action = policy.select_action(np.array(obs))
-            action = (action + np.random.normal(0, args.expl_noise, size=env.action_space.shape[0])).clip(env.action_space.low, env.action_space.high)
+                # Reset environment
+                obs = env.reset()
+                done = False
+                training_evaluations.append(episode_reward)
 
-        # Perform action
-        new_obs, reward, done, _ = env.step(action)
-        done_bool = 0 if episode_timesteps + 1 == env._max_episode_steps else float(done)
-        episode_reward += reward
+                # if args.use_logger:
+                #     logger.training_record_reward(training_evaluations)
+                #     logger.save_2()
 
-        replay_buffer.add((obs, new_obs, action, reward, done_bool))
-        obs = new_obs
+                episode_reward = 0
+                episode_timesteps = 0
+                episode_num += 1
 
-        episode_timesteps += 1
-        total_timesteps += 1
-        timesteps_since_eval += 1
+            if total_timesteps < args.start_timesteps:
+                action = env.action_space.sample()
+            else:
+                action = policy.select_action(np.array(obs))
+                action = (action + np.random.normal(0, args.expl_noise, size=env.action_space.shape[0])).clip(env.action_space.low, env.action_space.high)
 
-    # Final evaluation
-    evaluations.append(evaluate_policy(policy))
-    training_evaluations.append(episode_reward)
+            # Perform action
+            new_obs, reward, done, _ = env.step(action)
+            done_bool = 0 if episode_timesteps + 1 == env._max_episode_steps else float(done)
+            episode_reward += reward
+
+            replay_buffer.add((obs, new_obs, action, reward, done_bool))
+            obs = new_obs
+
+            episode_timesteps += 1
+            total_timesteps += 1
+            timesteps_since_eval += 1
+
+        # Final evaluation
+        evaluations.append(evaluate_policy(policy))
+        training_evaluations.append(episode_reward)
+        all_evaluations.append(evaluations)
+        all_training_evaluations.append(training_evaluations)
 
     if args.use_logger:
-        logger.record_reward(evaluations)
-        logger.training_record_reward(training_evaluations)
+        logger.record_reward(all_evaluations)
+        logger.training_record_reward(all_training_evaluations)
         logger.save()
         logger.save_2()
         if args.save_models:
