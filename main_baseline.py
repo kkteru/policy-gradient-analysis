@@ -137,6 +137,12 @@ if __name__ == "__main__":
         episodes_since_eval = 0
         episode_num = 0
         done = True
+
+        critic_loss_avg = 0
+        actor_loss_avg = 0
+        critic_loss = 0
+        actor_loss = 0
+
         tic = time.time()
 
         while total_timesteps < args.max_timesteps:
