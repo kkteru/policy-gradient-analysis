@@ -29,9 +29,14 @@ class ReplayBuffer(object):
             self.episode_lens.append(data)
 
       def set_margins(self):
-            self.u_margin = min(len(self.storage), np.sum(self.episode_lens[len(self.episode_lens) - self.warm_up:-1])) \
-                + max(0, len(self.storage) - np.sum(self.episode_lens[len(self.episode_lens) - self.warm_up:-1]) - np.sum(self.episode_lens[len(self.episode_lens) - self.delay:-1]))
-            self.l_margin = max(0, self.u_margin - np.sum(self.episode_lens[-self.window:]))
+            u = min(len(self.episode_lens), self.warm_up) + max(0, len(self.episode_lens) - self.warm_up - self.delay)
+            l = max(0, u - self.window)
+            # self.u_margin = min(len(self.storage), np.sum(self.episode_lens[len(self.episode_lens) - self.warm_up:-1])) \
+            #     + max(0, len(self.storage) - np.sum(self.episode_lens[len(self.episode_lens) - self.warm_up:-1]) - np.sum(self.episode_lens[len(self.episode_lens) - self.delay:-1]))
+            # self.l_margin = max(0, self.u_margin - np.sum(self.episode_lens[-self.window:]))
+
+            self.l_margin = np.sum(self.episode_lens[-l:])
+            self.u_margin = np.sum(self.episode_lens[-u:])
 
       def sample(self, batch_size=100):
 
