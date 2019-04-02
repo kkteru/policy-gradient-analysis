@@ -39,7 +39,7 @@ if __name__ == "__main__":
     parser.add_argument("--env_name", default="InvertedDoublePendulum-v1")         # OpenAI gym environment name
     parser.add_argument("--seed", default=0, type=int)                  # Sets Gym, PyTorch and Numpy seeds
     parser.add_argument("--start_timesteps", default=1e4, type=int)     # How many time steps purely random policy is run for
-    parser.add_argument("--eval_freq", default=5e3, type=float)         # How often (time steps) we evaluate
+    parser.add_argument("--eval_freq", default=5e3, type=float)         # How often (episodes) we evaluate
     parser.add_argument("--max_timesteps", default=1.25e6, type=float)     # Max time steps to run environment for
     parser.add_argument("--save_models", default=True)          # Whether or not models are saved
     parser.add_argument("--expl_noise", default=0.1, type=float)        # Std of Gaussian exploration noise
@@ -96,6 +96,10 @@ if __name__ == "__main__":
 
     all_evaluations = []
     all_training_evaluations = []
+    all_critic_loss_avg_list = []
+    all_actor_loss_avg_list = []
+    all_critic_loss_list = []
+    all_actor_loss_list = []
 
     for r in range(args.runs):
         # Set seeds
@@ -124,8 +128,13 @@ if __name__ == "__main__":
         episode_reward = 0
         training_evaluations = [episode_reward]
 
+        critic_loss_avg_list = []
+        actor_loss_avg_list = []
+        critic_loss_list = []
+        actor_loss_list = []
+
         total_timesteps = 0
-        timesteps_since_eval = 0
+        episodes_since_eval = 0
         episode_num = 0
         done = True
         tic = time.time()
@@ -141,11 +150,11 @@ if __name__ == "__main__":
                     if args.policy_name == "TD3":
                         policy.train(replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau, args.policy_noise, args.noise_clip, args.policy_freq)
                     else:
-                        policy.train(replay_buffer, episode_timesteps, args.repeated_critic_updates, args.critic_repeat, args.batch_size, args.discount, args.tau)
-
+                        critic_loss_avg, actor_loss_avg, critic_loss, actor_loss = policy.train(replay_buffer, episode_timesteps, args.repeated_critic_updates, args.critic_repeat, args.batch_size, args.discount, args.tau)
+                    episodes_since_eval += 1
                 # Evaluate episode
-                if timesteps_since_eval >= args.eval_freq:
-                    timesteps_since_eval %= args.eval_freq
+                if episodes_since_eval >= args.eval_freq:
+                    episodes_since_eval %= args.eval_freq
                     evaluations.append(evaluate_policy(policy))
                     # if args.use_logger:
                     #     logger.record_reward(evaluations)
@@ -157,7 +166,10 @@ if __name__ == "__main__":
                 obs = env.reset()
                 done = False
                 training_evaluations.append(episode_reward)
-
+                critic_loss_avg_list.append(critic_loss_avg)
+                actor_loss_avg_list.append(actor_loss_avg)
+                critic_loss_list.append(critic_loss)
+                actor_loss_list.append(actor_loss)
                 # if args.use_logger:
                 #     logger.training_record_reward(training_evaluations)
                 #     logger.save_2()
@@ -182,18 +194,21 @@ if __name__ == "__main__":
 
             episode_timesteps += 1
             total_timesteps += 1
-            timesteps_since_eval += 1
 
         # Final evaluation
         evaluations.append(evaluate_policy(policy))
         training_evaluations.append(episode_reward)
         all_evaluations.append(evaluations)
         all_training_evaluations.append(training_evaluations)
+        all_critic_loss_avg_list.append(critic_loss_avg_list)
+        all_actor_loss_avg_list.append(actor_loss_avg_list)
+        all_critic_loss_list.append(critic_loss_list)
+        all_actor_loss_list.append(actor_loss_list)
 
     if args.use_logger:
         logger.record_reward(all_evaluations)
         logger.training_record_reward(all_training_evaluations)
+        logger.record_losses(all_critic_loss_avg_list, all_actor_loss_avg_list, all_critic_loss_list, all_actor_loss_list)
         logger.save()
-        logger.save_2()
         if args.save_models:
             policy.save("%s" % (file_name), directory="./pytorch_models")

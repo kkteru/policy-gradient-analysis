@@ -66,8 +66,16 @@ class Logger(object):
       def training_record_reward(self, reward_return):
             self.returns_train = reward_return
 
+      def record_losses(self, critic_loss_avg, actor_loss_avg, critic_loss, actor_loss):
+            self.critic_loss_avg = critic_loss_avg
+            self.actor_loss_avg = actor_loss_avg
+            self.critic_loss = critic_loss
+            self.actor_loss = actor_loss
+
       def save(self):
             np.save(os.path.join(self.save_folder, "returns_eval.npy"), self.returns_eval)
-
-      def save_2(self):
-            np.save(os.path.join(self.save_folder, "returns_train.npy"), self.returns_train)
+            np.save(os.path.join(self.save_folder, "returns_eval.npy"), self.returns_train)
+            np.save(os.path.join(self.save_folder, "returns_eval.npy"), self.critic_loss_avg)
+            np.save(os.path.join(self.save_folder, "returns_eval.npy"), self.actor_loss_avg)
+            np.save(os.path.join(self.save_folder, "returns_eval.npy"), self.critic_loss)
+            np.save(os.path.join(self.save_folder, "returns_eval.npy"), self.actor_loss)

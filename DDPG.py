@@ -113,6 +113,8 @@ class DDPG(object):
         self.critic_optimizer.step()
 
     def train(self, replay_buffer, iterations, repeated_critic_updates, critic_repeat, batch_size=64, discount=0.99, tau=0.001):
+        critic_loss_avg = 0
+        actor_loss_avg = 0
 
         for it in range(iterations):
 
@@ -132,6 +134,7 @@ class DDPG(object):
 
             # Compute critic loss
             critic_loss = F.mse_loss(current_Q, target_Q)
+            critic_loss_avg += (critic_loss - critic_loss_avg) / (it + 1)
 
             # Optimize the critic
             self.critic_optimizer.zero_grad()
@@ -143,6 +146,7 @@ class DDPG(object):
 
             # Compute actor loss
             actor_loss = -self.critic(state, self.actor(state)).mean()
+            actor_loss_avg += (actor_loss - actor_loss_avg) / (it + 1)
 
             # Optimize the actor
             self.actor_optimizer.zero_grad()
@@ -155,6 +159,8 @@ class DDPG(object):
 
             for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
                 target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
+
+        return critic_loss_avg, actor_loss_avg, critic_loss, actor_loss
 
     def save(self, filename, directory):
         torch.save(self.actor.state_dict(), '%s/%s_actor.pth' % (directory, filename))
