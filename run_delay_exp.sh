@@ -2,7 +2,7 @@
 
 # Script to run the delay experiment
 
-python main_baseline.py --use_logger True
+python main_baseline.py --use_logger True --gpu=0
 
 python main_baseline.py --use_logger True --delay 10 --gpu=0
 
