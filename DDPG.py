@@ -134,7 +134,8 @@ class DDPG(object):
 
             # Compute critic loss
             critic_loss = F.mse_loss(current_Q, target_Q)
-            critic_loss_avg += (critic_loss - critic_loss_avg) / (it + 1)
+            with torch.no_grad():
+                critic_loss_avg += (critic_loss - critic_loss_avg) / (it + 1)
 
             # Optimize the critic
             self.critic_optimizer.zero_grad()
@@ -146,7 +147,8 @@ class DDPG(object):
 
             # Compute actor loss
             actor_loss = -self.critic(state, self.actor(state)).mean()
-            actor_loss_avg += (actor_loss - actor_loss_avg) / (it + 1)
+            with torch.no_grad():
+                actor_loss_avg += (actor_loss - actor_loss_avg) / (it + 1)
 
             # Optimize the actor
             self.actor_optimizer.zero_grad()
@@ -160,7 +162,7 @@ class DDPG(object):
             for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
                 target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
 
-        return critic_loss_avg, actor_loss_avg, critic_loss, actor_loss
+        return critic_loss_avg.cpu().detach(), actor_loss_avg.cpu().detach(), critic_loss.cpu().detach(), actor_loss.cpu().detach()
 
     def save(self, filename, directory):
         torch.save(self.actor.state_dict(), '%s/%s_actor.pth' % (directory, filename))

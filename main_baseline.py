@@ -40,7 +40,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", default=0, type=int)                  # Sets Gym, PyTorch and Numpy seeds
     parser.add_argument("--start_timesteps", default=1e4, type=int)     # How many time steps purely random policy is run for
     parser.add_argument("--eval_freq", default=5, type=float)         # How often (episodes) we evaluate
-    parser.add_argument("--max_timesteps", default=1.25e6, type=float)     # Max time steps to run environment for
+    parser.add_argument("--max_timesteps", default=1e6, type=float)     # Max time steps to run environment for
     parser.add_argument("--save_models", default=True)          # Whether or not models are saved
     parser.add_argument("--expl_noise", default=0.1, type=float)        # Std of Gaussian exploration noise
     parser.add_argument("--batch_size", default=100, type=int)          # Batch size for both actor and critic
