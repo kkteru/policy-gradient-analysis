@@ -83,8 +83,8 @@ class Logger(object):
 
       def save(self):
             np.save(os.path.join(self.save_folder, "returns_eval.npy"), self.returns_eval)
-            np.save(os.path.join(self.save_folder, "returns_eval.npy"), self.returns_train)
-            np.save(os.path.join(self.save_folder, "returns_eval.npy"), self.critic_loss_avg)
-            np.save(os.path.join(self.save_folder, "returns_eval.npy"), self.actor_loss_avg)
-            np.save(os.path.join(self.save_folder, "returns_eval.npy"), self.critic_loss)
-            np.save(os.path.join(self.save_folder, "returns_eval.npy"), self.actor_loss)
+            np.save(os.path.join(self.save_folder, "returns_train.npy"), self.returns_train)
+            np.save(os.path.join(self.save_folder, "critic_loss_avg.npy"), self.critic_loss_avg)
+            np.save(os.path.join(self.save_folder, "actor_loss_avg.npy"), self.actor_loss_avg)
+            np.save(os.path.join(self.save_folder, "critic_loss.npy"), self.critic_loss)
+            np.save(os.path.join(self.save_folder, "actor_loss.npy"), self.actor_loss)
