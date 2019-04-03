@@ -70,16 +70,16 @@ class Logger(object):
                   json.dump(dict(args._get_kwargs()), f)
 
       def record_reward(self, reward_return):
-            self.returns_eval = reward_return
+            self.returns_eval = np.array(reward_return)
 
       def training_record_reward(self, reward_return):
-            self.returns_train = reward_return
+            self.returns_train = np.array(reward_return)
 
       def record_losses(self, critic_loss_avg, actor_loss_avg, critic_loss, actor_loss):
-            self.critic_loss_avg = critic_loss_avg
-            self.actor_loss_avg = actor_loss_avg
-            self.critic_loss = critic_loss
-            self.actor_loss = actor_loss
+            self.critic_loss_avg = np.array(critic_loss_avg)
+            self.actor_loss_avg = np.array(actor_loss_avg)
+            self.critic_loss = np.array(critic_loss)
+            self.actor_loss = np.array(actor_loss)
 
       def save(self):
             np.save(os.path.join(self.save_folder, "returns_eval.npy"), self.returns_eval)
