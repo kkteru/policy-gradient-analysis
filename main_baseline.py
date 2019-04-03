@@ -52,7 +52,7 @@ if __name__ == "__main__":
     parser.add_argument("--ent_weight", default=0.01, type=float)       # Range to clip target policy noise
     parser.add_argument("--folder", type=str, default='./results/')
 
-    parser.add_argument("--warm_up", default=0, type=int,
+    parser.add_argument("--warm_up", default=10, type=int,
                         help='Minimum number of episodes to train before starting to move window. \
                         Only matters for non-zero values of delay')
     parser.add_argument("--delay", default=0, type=int, help='Delay in no. of episodes')
