@@ -162,7 +162,7 @@ class DDPG(object):
             for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
                 target_param.data.copy_(tau * param.data + (1 - tau) * target_param.data)
 
-        return critic_loss_avg.cpu().detach().numpy(), actor_loss_avg.cpu().detach().numpy(), critic_loss.cpu().detach().numpy(), actor_loss.cpu().detach().numpy()
+        return critic_loss_avg.cpu().detach().item(), actor_loss_avg.cpu().detach().item(), critic_loss.cpu().detach().item(), actor_loss.cpu().detach().item()
 
     def save(self, filename, directory):
         torch.save(self.actor.state_dict(), '%s/%s_actor.pth' % (directory, filename))

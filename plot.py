@@ -30,7 +30,7 @@ def main_plot(list_of_data, smoothing_window=10,
     rewards_smoothed = []
 
     for data, label, color in zip(list_of_data, labels, colors):
-        episodes = np.arange(data.shape[1])
+        episodes = np.arange(data.shape[-1])
         smoothed_data = pd.DataFrame(data).rolling(smoothing_window, min_periods=smoothing_window, axis=1).mean()
 
         rewards_smoothed.append(smoothed_data)
