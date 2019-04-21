@@ -39,7 +39,7 @@ if __name__ == "__main__":
     parser.add_argument("--env_name", default="InvertedDoublePendulum-v1")         # OpenAI gym environment name
     parser.add_argument("--seed", default=0, type=int)                  # Sets Gym, PyTorch and Numpy seeds
     parser.add_argument("--start_timesteps", default=1e4, type=int)     # How many time steps purely random policy is run for
-    parser.add_argument("--eval_freq", default=5, type=float)         # How often (episodes) we evaluate
+    parser.add_argument("--eval_freq", default=5e3, type=float)         # How often (timesteps) we evaluate
     parser.add_argument("--max_timesteps", default=1e6, type=float)     # Max time steps to run environment for
     parser.add_argument("--save_models", default=True)          # Whether or not models are saved
     parser.add_argument("--expl_noise", default=0.1, type=float)        # Std of Gaussian exploration noise
@@ -133,7 +133,7 @@ if __name__ == "__main__":
         actor_loss_list = []
 
         total_timesteps = 0
-        episodes_since_eval = 0
+        timesteps_since_eval = 0
         episode_num = 0
         done = True
 
@@ -158,10 +158,10 @@ if __name__ == "__main__":
                         policy.train(replay_buffer, episode_timesteps, args.batch_size, args.discount, args.tau, args.policy_noise, args.noise_clip, args.policy_freq)
                     else:
                         critic_loss_avg, actor_loss_avg, critic_loss, actor_loss = policy.train(replay_buffer, episode_timesteps, args.repeated_critic_updates, args.critic_repeat, args.batch_size, args.discount, args.tau)
-                    episodes_since_eval += 1
+
                 # Evaluate episode
-                if episodes_since_eval >= args.eval_freq:
-                    episodes_since_eval %= args.eval_freq
+                if timesteps_since_eval >= args.eval_freq:
+                    timesteps_since_eval %= args.eval_freq
                     evaluations.append(evaluate_policy(policy))
                     # if args.use_logger:
                     #     logger.record_reward(evaluations)
@@ -201,6 +201,7 @@ if __name__ == "__main__":
 
             episode_timesteps += 1
             total_timesteps += 1
+            timesteps_since_eval += 1
 
         # Final evaluation
         evaluations.append(evaluate_policy(policy))
