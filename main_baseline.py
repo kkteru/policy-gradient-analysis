@@ -26,9 +26,9 @@ def evaluate_policy(policy, eval_episodes=10):
 
     avg_reward /= eval_episodes
 
-    print ("---------------------------------------")
-    print ("Evaluation over %d episodes: %f" % (eval_episodes, avg_reward))
-    print ("---------------------------------------")
+    print("---------------------------------------")
+    print("Evaluation over %d episodes: %f" % (eval_episodes, avg_reward))
+    print("---------------------------------------")
     return avg_reward
 
 
@@ -59,6 +59,7 @@ if __name__ == "__main__":
     parser.add_argument("--window", default=10000, type=int, help='Window size of the buffer in no. of episodes')
     parser.add_argument("--runs", type=int, default=5, help="How many times the experiment is to be repeated?")
     parser.add_argument("--gpu", type=int, default=0, help="Which GPU to use?")
+    parser.add_argument('--disable-cuda', action='store_true', help='Disable CUDA')
 
     parser.add_argument("--use_logger", type=bool, default=False, help='whether to use logging or not')
     parser.add_argument("--no_new_samples_after_threshold", type=bool, default=False, help='stop adding new samples to the replay buffer')
@@ -74,14 +75,20 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    device = torch.device("cuda:%d" % args.gpu if torch.cuda.is_available() else "cpu")
+    device = None
+    if not args.disable_cuda and torch.cuda.is_available():
+        device = torch.device('cuda:%d' % args.gpu)
+    else:
+        device = torch.device('cpu')
+
+    # device = torch.device("cuda:%d" % args.gpu if torch.cuda.is_available() else "cpu")
 
     if args.use_logger:
         file_name = "%s_%s_%s_%s" % (args.policy_name, args.env_name, str(args.window), str(args.delay))
 
         logger = Logger(args, experiment_name=args.policy_name, environment_name=args.env_name, folder=args.folder)
 
-        print ('Saving to', logger.save_folder)
+        print('Saving to', logger.save_folder)
 
     if not os.path.exists("./results"):
         os.makedirs("./results")
@@ -109,10 +116,10 @@ if __name__ == "__main__":
         np.random.seed(seed)
 
         if args.use_logger:
-            print ("---------------------------------------")
-            print ("Settings: %s" % (file_name))
-            print ("Seed : %s" % (seed))
-            print ("---------------------------------------")
+            print("---------------------------------------")
+            print("Settings: %s" % (file_name))
+            print("Seed : %s" % (seed))
+            print("---------------------------------------")
 
         # Initialize policy
         if args.policy_name == "TD3":
