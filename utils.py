@@ -4,59 +4,36 @@ import os
 import time
 import json
 
-# Code based on:
+# Code based on: 
 # https://github.com/openai/baselines/blob/master/baselines/deepq/replay_buffer.py
 
 # Simple replay buffer
-
-
 class ReplayBuffer(object):
-      def __init__(self, window=1e4, warm_up=0, delay=0):
-            self.storage = []
-            self.episode_lens = []
-            self.l_margin = 0
-            self.u_margin = 0
+	def __init__(self):
+		self.storage = []
 
-            self.window = window
-            self.warm_up = warm_up
-            self.delay = delay
+	# Expects tuples of (state, next_state, action, reward, done)
+	def add(self, data):
+		self.storage.append(data)
 
-      # Expects tuples of (state, next_state, action, reward, done)
-      def add_sample(self, data):
-            self.storage.append(data)
+	def sample(self, batch_size=100):
+		ind = np.random.randint(0, len(self.storage), size=batch_size)
+		x, y, u, r, d = [], [], [], [], []
 
-      def add_episode_len(self, data):
-            self.episode_lens.append(data)
+		for i in ind: 
+			X, Y, U, R, D = self.storage[i]
+			x.append(np.array(X, copy=False))
+			y.append(np.array(Y, copy=False))
+			u.append(np.array(U, copy=False))
+			r.append(np.array(R, copy=False))
+			d.append(np.array(D, copy=False))
 
-      def set_margins(self):
-            u = min(len(self.episode_lens), self.warm_up) + max(0, len(self.episode_lens) - self.warm_up - self.delay)
-            l = max(0, u - self.window)
-
-            self.l_margin = np.sum(self.episode_lens[:l])
-            self.u_margin = np.sum(self.episode_lens[:u])
-
-      def sample(self, batch_size=100):
-
-            ind = np.random.randint(self.l_margin, self.u_margin, size=batch_size)
-
-            x, y, u, r, d = [], [], [], [], []
-
-            for i in ind:
-                  X, Y, U, R, D = self.storage[i]
-                  x.append(np.array(X, copy=False))
-                  y.append(np.array(Y, copy=False))
-                  u.append(np.array(U, copy=False))
-                  r.append(np.array(R, copy=False))
-                  d.append(np.array(D, copy=False))
-
-            return np.array(x), np.array(y), np.array(u), np.array(r).reshape(-1, 1), np.array(d).reshape(-1, 1)
+		return np.array(x), np.array(y), np.array(u), np.array(r).reshape(-1, 1), np.array(d).reshape(-1, 1)
 
 
-def create_folder(f): return [os.makedirs(f) if not os.path.exists(f) else False]
-
-
+create_folder = lambda f: [ os.makedirs(f) if not os.path.exists(f) else False ]
 class Logger(object):
-      def __init__(self, args, experiment_name='', environment_name='', folder='./results'):
+      def __init__(self, experiment_name='', environment_name='', folder='./results' ):
             """
             Saves experimental metrics for use later.
             :param experiment_name: name of the experiment
@@ -64,27 +41,34 @@ class Logger(object):
             : param environment_name: name of the environment
             """
             self.rewards = []
-            self.save_folder = os.path.join(folder, experiment_name, environment_name, time.strftime('%y-%m-%d') + '_' + str(args.window) + '_' + str(args.delay))
+            self.metrics = {}
+            self.save_folder = os.path.join(folder, experiment_name, environment_name, time.strftime('%y-%m-%d-%H-%M-%s'))
             create_folder(self.save_folder)
-            with open(os.path.join(self.save_folder, 'params.json'), 'w') as f:
-                  json.dump(dict(args._get_kwargs()), f)
+
+      def log_metric(self, name, val):
+          if name in self.metrics:
+              self.metrics[name].append(val)
+          else:
+              self.metrics[name] = [val]
 
       def record_reward(self, reward_return):
-            self.returns_eval = np.array(reward_return)
+            self.returns_eval = reward_return
 
       def training_record_reward(self, reward_return):
-            self.returns_train = np.array(reward_return)
-
-      def record_losses(self, critic_loss_avg, actor_loss_avg, critic_loss, actor_loss):
-            self.critic_loss_avg = np.array(critic_loss_avg)
-            self.actor_loss_avg = np.array(actor_loss_avg)
-            self.critic_loss = np.array(critic_loss)
-            self.actor_loss = np.array(actor_loss)
+            self.returns_train = reward_return
 
       def save(self):
             np.save(os.path.join(self.save_folder, "returns_eval.npy"), self.returns_eval)
+            for key in self.metrics:
+                np.save(os.path.join(self.save_folder, f"{key}.npy"), self.metrics[key])
+
+      def save_2(self):
             np.save(os.path.join(self.save_folder, "returns_train.npy"), self.returns_train)
-            np.save(os.path.join(self.save_folder, "critic_loss_avg.npy"), self.critic_loss_avg)
-            np.save(os.path.join(self.save_folder, "actor_loss_avg.npy"), self.actor_loss_avg)
-            np.save(os.path.join(self.save_folder, "critic_loss.npy"), self.critic_loss)
-            np.save(os.path.join(self.save_folder, "actor_loss.npy"), self.actor_loss)
+
+
+      def save_args(self, args):
+            """
+            Save the command line arguments
+            """
+            with open(os.path.join(self.save_folder, 'params.json'), 'w') as f:
+                  json.dump(dict(args._get_kwargs()), f)

@@ -1,0 +1,10 @@
+Added all plots: Units of x-axis are in episodes.
+
+Baseline is with zero delay and 10000 episides window.
+
+HCDelayReward : Half cheetah reward plot with varying delay
+HPDelayReward : Hopper reward plot with varying delay
+IPDelayReward : Inverted Pendulum reward plot with varying delay
+HCWindowReward : Half cheetah reward plot with varying window
+HPWindowReward : Hopper reward plot with varying window
+IPWindowReward : Inverted Pendulum reward plot with varying window
